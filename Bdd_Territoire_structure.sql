@@ -877,6 +877,21 @@ SELECT DISTINCT v1.tstruct_code_officiel, v2.tstructt_code, v1.numcom, v1.nomcom
 		AND t1.tstruct_code_officiel::text = t4.numcom::text
 		AND tfct_code = 'MAIRE'
 		AND t2.numcom = t6.numcom
+		AND t4.numdep NOT IN ('16','17','79', '86')
+	UNION	
+	SELECT DISTINCT t1.tstruct_code_officiel, t2.numcom, t2.nomcom, t2.numarr, t2.nomarr, t3.numcae, t3.nomcae, t4.numcrpcepci AS numepci, t4.nomepci,
+		    t6.numcirleg, t6.nomcirleg
+		FROM bd_territoire.tr_emploi t1, 
+		    bd_territoire.tm_appartenance_geo_com_libelle t2,
+		    bd_territoire.tm_appartenance_geo_com_cae t3,
+		    bd_territoire.tm_appartenance_geo_com_epci t4,
+		    bd_territoire.tm_appartenance_geo_com_cirleg t6
+		WHERE t1.tstruct_code_officiel::text = t2.numcom::text
+		AND t1.tstruct_code_officiel::text = t3.numcom::text
+		AND t1.tstruct_code_officiel::text = t4.numcom::text
+		AND tfct_code = 'MAIRE'
+		AND t2.numcom = t6.numcom
+		AND t4.numdep IN ('16','17','79', '86')
 	) v1,
 	(SELECT DISTINCT t3.tstructt_code, t1.tfct_code, t4.tfct_libelle, t1.tstruct_code_officiel, t3.tstruct_libelle, t3.tstruct_siret, t3.tstruct_adresse, t3.tstruct_boite_postal, t3.tstruct_tel, t3.tstruct_fax, t3.tstruct_mail, t3.tstruct_web, t1.tact_code, t5.tact_nom, t5.tact_prenom, t5.tact_mail, t5.tact_tel, t5.tact_portable, t5.tact_fax, t5.tciv_code,t7.tciv_libelle, t5.tpp_code, t6.tpp_libelle, t1.tserv_code
 		FROM bd_territoire.tr_emploi t1, 
@@ -911,6 +926,7 @@ ALTER TABLE bd_territoire.v_annuaire_elu_terri_maire
 CREATE OR REPLACE VIEW bd_territoire.v_annuaire_elu_terri_pdt_vpdt AS
 SELECT DISTINCT v1.tstruct_code_officiel, v2.tstructt_code, v1.numdep, v1.nomdep,
 	v2.tfct_code, v2.tfct_libelle, v2.tstruct_libelle, v2.tstruct_siret, v2.tstruct_adresse, v2.tstruct_boite_postal,
+	v2.tstruct_code_postal, v2.tstruct_nom_com,
 	v2.tstruct_tel, v2.tstruct_fax, v2.tstruct_mail, v2.tstruct_web, v2.tact_code, v2.tact_nom, v2.tact_prenom, 
 	v2.tact_mail, v2.tact_tel, v2.tact_portable, v2.tact_fax, v2.tciv_code
 --	
@@ -920,7 +936,7 @@ SELECT DISTINCT v1.tstruct_code_officiel, v2.tstructt_code, v1.numdep, v1.nomdep
 		WHERE t1.tstruct_code_officiel::text = t2.numdep::text
 		AND tfct_code IN ('PDT','VPDT')
 	) v1,
-	(SELECT DISTINCT t1.tstructt_code, t1.tfct_code, t4.tfct_libelle, t1.tstruct_code_officiel, t3.tstruct_libelle, t3.tstruct_siret, t3.tstruct_adresse, t3.tstruct_boite_postal, t3.tstruct_tel, t3.tstruct_fax, t3.tstruct_mail, t3.tstruct_web, t1.tact_code, t5.tact_nom, t5.tact_prenom, t5.tact_mail, t5.tact_tel, t5.tact_portable, t5.tact_fax, t5.tciv_code,t7.tciv_libelle, t5.tpp_code, t6.tpp_libelle, t1.tserv_code
+	(SELECT DISTINCT t1.tstructt_code, t1.tfct_code, t4.tfct_libelle, t1.tstruct_code_officiel, t3.tstruct_libelle, t3.tstruct_siret, t3.tstruct_adresse, t3.tstruct_boite_postal, t3.tstruct_code_postal, t3.tstruct_nom_com, t3.tstruct_tel, t3.tstruct_fax, t3.tstruct_mail, t3.tstruct_web, t1.tact_code, t5.tact_nom, t5.tact_prenom, t5.tact_mail, t5.tact_tel, t5.tact_portable, t5.tact_fax, t5.tciv_code,t7.tciv_libelle, t5.tpp_code, t6.tpp_libelle, t1.tserv_code
 		FROM bd_territoire.tr_emploi t1, 
 			bd_territoire.t_structure t3, 
 			bd_territoire.t_fonction t4,
@@ -1313,7 +1329,8 @@ FROM (
 	    AND t5.tpp_code::text = t6.tpp_code::text 
 	    AND t5.tciv_code::text = t7.tciv_code::text 
 	    AND t4.tfct_code::text <> 'NR'::text 
-	    AND (t1.tfct_code::text = ANY (ARRAY['PDT'::character varying::text, 'VPDT'::character varying::text])) AND (t3.tstructt_code::text = ANY (ARRAY['COLCC'::character varying::text, 'COLCA'::character varying::text, 'COLCU'::character varying::text, 'COLPA'::character varying::text, 'COLMETRO'::character varying::text]))
+	    AND (t1.tfct_code::text = ANY (ARRAY['PDT'::character varying::text, 'VPDT'::character varying::text])) 
+	    AND (t3.tstructt_code::text = ANY (ARRAY['COLCC'::character varying::text, 'COLCA'::character varying::text, 'COLCU'::character varying::text, 'COLPA'::character varying::text, 'COLMETRO'::character varying::text]))
 	) v2
 WHERE v1.tstruct_code_officiel::text = v2.tstruct_code_officiel::text
 ORDER BY v2.tstructt_code, v2.tfct_code, v1.numdep;
@@ -1444,32 +1461,193 @@ COMMENT ON VIEW bd_territoire.v_annuaire_elu_terri_pdt_vpdt_epci
 
 
 ------------------------------------------------------------
--- View: bd_territoire.v_annuaire_elu_
+-- View: bd_territoire.v_annuaire_elu_terri_depute
 ------------------------------------------------------------
 ------------------------------------------------------------
 -- Créé le : 30/11/2016
--- Modifié le : 30/11/2016
+-- Modifié le : 02/12/2016
 -- Par : Tony VINCENT
+------------------------------------------------------------		
+		
+		
+DROP VIEW bd_territoire.v_annuaire_elu_terri_depute;
+
+CREATE OR REPLACE VIEW bd_territoire.v_annuaire_elu_terri_depute AS 
+
+SELECT DISTINCT v1.tstruct_code_officiel, v2.tstructt_code, v1.numcom,v1.nomcom, v1.numarr, v1.nomarr,	v1.numcae, v1.nomcae, v1.numdep, 
+	v1.numepci, v1.nomepci, v1.numcirleg, v1.nomcirleg, v1.tdppays, v1.numtdppays, v1.nomtdppays, v2.tfct_code, v2.tfct_libelle, 
+    v2.tstruct_libelle, v2.tstruct_siret, v2.tstruct_adresse, v2.tstruct_boite_postal, v2.tstruct_tel, v2.tstruct_fax, v2.tstruct_mail, 
+    v2.tstruct_web, v2.tact_code, v2.tact_nom, v2.tact_prenom, v2.tact_mail, v2.tact_tel, v2.tact_portable, v2.tact_fax, v2.tciv_code
+   FROM (
+	SELECT DISTINCT t1.tstruct_code_officiel, t1.tstructt_code, t1.tfct_code,
+		t2.numarr, t2.nomarr,
+		t3.numcae, t3.nomcae,
+		t4.numepci, t4.nomepci, t4.numdep,
+		t5.tdppays, t5.numtdppays, t5.nomtdppays,
+		t6.numcom, t6.nomcom, t6.numcirleg, t6.nomcirleg
+	FROM bd_territoire.tr_emploi t1, 
+		bd_territoire.tm_appartenance_geo_com_libelle t2,
+		bd_territoire.tm_appartenance_geo_com_cae t3,
+		bd_territoire.tm_appartenance_geo_com_epci t4,
+		bd_territoire.tm_appartenance_geo_com_terricontract t5,
+		bd_territoire.tm_appartenance_geo_com_cirleg t6
+	WHERE t1.tstruct_code_officiel::text = t6.numcirleg::text
+		AND t2.numcom = t6.numcom
+		AND t4.numcom = t6.numcom
+		AND t5.numcom = t6.numcom
+		AND t3.numcom = t6.numcom
+		AND tfct_code IN ('DEP')
+		AND t4.numdep  NOT IN ('16','17','79', '86')
+	UNION
+	SELECT DISTINCT t1.tstruct_code_officiel, t1.tstructt_code, t1.tfct_code,
+		t2.numarr, t2.nomarr,
+		t3.numcae, t3.nomcae,
+		t4.numcrpcepci AS numepci, t4.nomepci, t4.numdep,
+		t5.tdppays, t5.numtdppays, t5.nomtdppays,
+		t6.numcom, t6.nomcom, t6.numcirleg, t6.nomcirleg
+	FROM bd_territoire.tr_emploi t1, 
+		bd_territoire.tm_appartenance_geo_com_libelle t2,
+		bd_territoire.tm_appartenance_geo_com_cae t3,
+		bd_territoire.tm_appartenance_geo_com_epci t4,
+		bd_territoire.tm_appartenance_geo_com_terricontract t5,
+		bd_territoire.tm_appartenance_geo_com_cirleg t6
+	WHERE t1.tstruct_code_officiel::text = t6.numcirleg::text
+		AND t2.numcom = t6.numcom
+		AND t4.numcom = t6.numcom
+		AND t5.numcom = t6.numcom
+		AND t3.numcom = t6.numcom
+		AND tfct_code IN ('DEP')
+		AND t4.numdep  IN ('16','17','79', '86')
+	) v1, 
+	(
+	SELECT DISTINCT t1.tstructt_code, t1.tfct_code, t1.tserv_code, t1.tstruct_code_officiel, t1.tact_code,
+	    t4.tfct_libelle,  
+	    t3.tstruct_libelle, t3.tstruct_siret, t3.tstruct_adresse, t3.tstruct_boite_postal, t3.tstruct_tel, t3.tstruct_fax, t3.tstruct_mail, t3.tstruct_web,
+	    t5.tact_nom, t5.tact_prenom, t5.tact_mail, t5.tact_tel, t5.tact_portable, t5.tact_fax, t5.tciv_code, t5.tpp_code,
+	    t7.tciv_libelle,
+	    t6.tpp_libelle
+	FROM bd_territoire.tr_emploi t1, 
+	    bd_territoire.t_structure t3, 
+	    bd_territoire.t_fonction t4,
+	    bd_territoire.t_acteur t5,
+	    bd_territoire.t_parti_politique t6, 
+	    bd_territoire.t_civilite t7
+          WHERE t1.tstruct_code_officiel::text = t3.tstruct_code_officiel::text 
+	    AND t1.tfct_code::text = t4.tfct_code::text 
+	    AND t1.tact_code::text = t5.tact_code::text 
+	    AND t5.tpp_code::text = t6.tpp_code::text 
+	    AND t5.tciv_code::text = t7.tciv_code::text 
+	    AND t4.tfct_code::text <> 'NR'::text 
+	    AND t1.tfct_code IN ('DEP')	) v2
+  WHERE v1.tstruct_code_officiel::text = v2.tstruct_code_officiel::text
+  ORDER BY v2.tstructt_code, v2.tfct_code, v1.numdep;
+
+ALTER TABLE bd_territoire.v_annuaire_elu_terri_depute
+  OWNER TO postgres;
+COMMENT ON VIEW bd_territoire.v_annuaire_elu_terri_depute
+  IS 'Vue contenant la liste des députés';
+
 ------------------------------------------------------------
+-- View: bd_territoire.v_annuaire_elu_terri_eluref
+------------------------------------------------------------
+------------------------------------------------------------
+-- Créé le : 02/12/2016
+-- Modifié le : 02/12/2016
+-- Par : Tony VINCENT
+------------------------------------------------------------		
+		
+		
+DROP VIEW bd_territoire.v_annuaire_elu_terri_eluref;
+
+CREATE OR REPLACE VIEW bd_territoire.v_annuaire_elu_terri_eluref AS 
+
+SELECT DISTINCT v1.tstruct_code_officiel, v2.tstructt_code, v1.numcom, v1.nomcom, v1.numdep, v1.numepci, v1.nomepci, v1.tdppays, v1.numtdppays, 
+    v1.nomtdppays, v2.tfct_code, v2.tfct_libelle, v2.tstruct_libelle, v2.tstruct_siret, v2.tstruct_adresse, v2.tstruct_boite_postal, 
+    v2.tstruct_nom_com, v2.tstruct_tel, v2.tstruct_fax, v2.tstruct_mail, v2.tstruct_web, v2.tact_code, v2.tact_nom, v2.tact_prenom, 
+    v2.tact_mail, v2.tact_tel, v2.tact_portable, v2.tact_fax, v2.tciv_code
+FROM (-- Elus réferents pour CA,CA et METRO
+	SELECT DISTINCT t1.tstruct_code_officiel, t1.tstructt_code, t1.tfct_code,
+		t4.numcom, t4.nomcom, t4.numepci, t4.nomepci, t4.numdep,
+		t5.tdppays, t5.numtdppays, t5.nomtdppays
+	FROM bd_territoire.tr_emploi t1,
+		bd_territoire.tm_appartenance_geo_com_epci t4,
+		bd_territoire.tm_appartenance_geo_com_terricontract t5
+	WHERE t1.tstruct_code_officiel::text = t4.numepci::text
+		AND  tfct_code IN ('ELUREF')
+		AND t4.numdep  NOT IN ('16','17','79', '86')
+		AND t5.numcom = t4.numcom
+	UNION
+	SELECT DISTINCT t1.tstruct_code_officiel, t1.tstructt_code, t1.tfct_code,
+		t4.numcom, t4.nomcom, t4.numcrpcepci AS numepci, t4.nomepci, t4.numdep,
+		t5.tdppays, t5.numtdppays, t5.nomtdppays
+	FROM bd_territoire.tr_emploi t1,
+		bd_territoire.tm_appartenance_geo_com_epci t4,
+		bd_territoire.tm_appartenance_geo_com_terricontract t5
+	WHERE t1.tstruct_code_officiel::text = t4.numcrpcepci::text
+		AND  tfct_code IN ('ELUREF')
+		AND t4.numdep IN ('16','17','79', '86')
+		AND t5.numcom = t4.numcom
+	UNION
+	-- Elus réferents pour PA
+	SELECT DISTINCT t1.tstruct_code_officiel, t1.tstructt_code, t1.tfct_code,
+		t4.numcom, t4.nomcom, t4.numepci, t4.nomepci, t4.numdep,
+		t5.tdppays, t5.numtdppays, t5.nomtdppays
+	FROM bd_territoire.tr_emploi t1,
+		bd_territoire.tm_appartenance_geo_com_epci t4,
+		bd_territoire.tm_appartenance_geo_com_terricontract t5
+	WHERE t1.tstruct_code_officiel::text = t5.numtdppays::text
+		AND  tfct_code IN ('ELUREF')
+		AND tstructt_code NOT IN ('COLCC','COLCA','COLMETRO')
+		AND t5.numcom = t4.numcom
+		AND t4.numdep  NOT IN ('16','17','79', '86')
+	UNION
+	SELECT DISTINCT t1.tstruct_code_officiel, t1.tstructt_code, t1.tfct_code,
+		t4.numcom, t4.nomcom, t4.numcrpcepci AS numepci, t4.nomepci, t4.numdep,
+		t5.tdppays, t5.numtdppays, t5.nomtdppays
+	FROM bd_territoire.tr_emploi t1,
+		bd_territoire.tm_appartenance_geo_com_epci t4,
+		bd_territoire.tm_appartenance_geo_com_terricontract t5
+	WHERE t1.tstruct_code_officiel::text = t5.numtdppays::text
+		AND  tfct_code IN ('ELUREF')
+		AND tstructt_code NOT IN ('COLCC','COLCA','COLMETRO')
+		AND t5.numcom = t4.numcom
+		AND t4.numdep IN ('16','17','79', '86')
+) v1,
+(
+	SELECT DISTINCT t1.tstructt_code, t1.tfct_code, t4.tfct_libelle, t1.tstruct_code_officiel, t3.tstruct_libelle, t3.tstruct_siret, 
+	    t3.tstruct_adresse, t3.tstruct_boite_postal, t3.tstruct_nom_com, t3.tstruct_tel, t3.tstruct_fax, t3.tstruct_mail, 
+	    t3.tstruct_web, t1.tact_code, t5.tact_nom, t5.tact_prenom, t5.tact_mail, t5.tact_tel, t5.tact_portable, t5.tact_fax, 
+	    t5.tciv_code, t7.tciv_libelle, t5.tpp_code, t6.tpp_libelle, t1.tserv_code
+	FROM bd_territoire.tr_emploi t1, 
+	    bd_territoire.t_structure t3, 
+	    bd_territoire.t_fonction t4, 
+	    bd_territoire.t_acteur t5, 
+	    bd_territoire.t_parti_politique t6, 
+	    bd_territoire.t_civilite t7
+	WHERE t1.tstruct_code_officiel::text = t3.tstruct_code_officiel::text 
+	    AND t1.tstructt_code::text = t3.tstructt_code::text 
+	    AND t1.tfct_code::text = t4.tfct_code::text 
+	    AND t1.tact_code::text = t5.tact_code::text 
+	    AND t5.tpp_code::text = t6.tpp_code::text 
+	    AND t5.tciv_code::text = t7.tciv_code::text 
+	    AND t4.tfct_code::text <> 'NR'::text 
+	    AND t1.tfct_code IN ('ELUREF') 
+	    AND (t3.tstructt_code::text = ANY (ARRAY['COLCC'::character varying::text, 'COLCA'::character varying::text, 'COLCU'::character varying::text, 'COLPA'::character varying::text, 'COLMETRO'::character varying::text]))
+	) v2
+WHERE v1.tstruct_code_officiel::text = v2.tstruct_code_officiel::text
+ORDER BY v2.tstructt_code, v2.tfct_code, v1.numdep;
 
 
+ALTER TABLE bd_territoire.v_annuaire_elu_terri_eluref
+  OWNER TO postgres;
+COMMENT ON VIEW bd_territoire.v_annuaire_elu_terri_eluref
+  IS 'Vue contenant la liste des élus de territoire';
 
 
-
-
-
-
-
-
-
-
-
-
-
-*****************************************************
-** Utile lorsque la mise à jour des données 
-** se fera directement dans postgre et non via l'ETL
-*****************************************************
+------------------------------------------------------
+-- Utile lorsque la mise à jour des données 
+-- se fera directement dans postgre et non via l'ETL
+------------------------------------------------------
 -- Sequence: bd_territoire.t_acteur_tact_code_seq
 
 -- DROP SEQUENCE bd_territoire.t_acteur_tact_code_seq;
@@ -1500,6 +1678,5 @@ $t_acteur_stamp$ LANGUAGE plpgsql;
 
 CREATE TRIGGER t_acteur_stamp BEFORE INSERT OR UPDATE ON bd_territoire.t_acteur
    FOR EACH ROW EXECUTE PROCEDURE bd_territoire.t_acteur_stamp();
-
 
 
